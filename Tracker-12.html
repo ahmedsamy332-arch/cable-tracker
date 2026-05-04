@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Cable Tracker - Live & Mobile Ready</title>
+    
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#0f172a">
+    <link rel="manifest" href="data:application/manifest+json,{&quot;name&quot;:&quot;Master Cable Tracker&quot;,&quot;short_name&quot;:&quot;CableTracker&quot;,&quot;display&quot;:&quot;standalone&quot;,&quot;background_color&quot;:&quot;#f8fafc&quot;,&quot;theme_color&quot;:&quot;#0f172a&quot;}">
+
+    <style>
+        /* ── CSS VARIABLES (LIGHT/DARK MODE) ── */
+        :root {
+            --primary: #0f172a; --secondary: #475569;
+            --remove-color: #dc2626; --install-color: #2563eb; 
+            --bg: #f8fafc; --text: #334155;
+            --box-bg: #ffffff; --border: #cbd5e1;
+            --th-bg: #e2e8f0; --th-text: #475569;
+            --tr-border: #f1f5f9; --tr-hover: #f8fafc;
+            --input-bg: #ffffff; --input-text: #0f172a;
+            --remark-bg: #fdfbf7; --remark-border: #cbd5e1;
+            --badge-bg: #f1f5f9; --badge-text: #64748b;
+        }
+
+        body.dark-mode {
+            --primary: #1e293b; --secondary: #94a3b8;
+            --bg: #020617; --text: #e2e8f0;
+            --box-bg: #0f172a; --border: #334155;
+            --th-bg: #020617; --th-text: #94a3b8;
+            --tr-border: #1e293b; --tr-hover: #1e293b;
+            --input-bg: #1e293b; --input-text: #f8fafc;
+            --remark-bg: #0f172a; --remark-border: #475569;
+            --badge-bg: #334155; --badge-text: #cbd5e1;
+        }
+
+        * { box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 0; direction: ltr; transition: background 0.3s, color 0.3s; }
+
+        /* ── MAIN APP ── */
+        #appContainer { padding: 20px; }
+
+        /* ── HEADER ── */
+        .header { background: #0f172a; color: white; padding: 20px; border-radius: 8px; margin-bottom: 20px;
+                  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;
+                  box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); border-left: 5px solid #0284c7; }
+        .stats { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+        .stat-box { background: rgba(255,255,255,0.1); padding: 8px 15px; border-radius: 6px; text-align: center;
+                    border: 1px solid rgba(255,255,255,0.2); min-width: 90px; color: white; }
+
+        /* ── BUTTONS ── */
+        .btn { border: none; padding: 8px 12px; border-radius: 6px; font-weight: bold; cursor: pointer;
+               transition: 0.2s; display: inline-flex; align-items: center; gap: 5px; font-size: 13px; white-space: nowrap; }
+        .btn:hover { opacity: 0.85; transform: translateY(-1px); }
+        .btn:active { transform: translateY(0); }
+        .btn-reset      { background: #ef4444; color: white; }
+        .btn-export     { background: #3b82f6; color: white; }
+        .btn-import     { background: #6366f1; color: white; }
+        .btn-sync       { background: #0284c7; color: white; }
+        .btn-add        { background: #8b5cf6; color: white; }
+        .btn-print-done { background: #10b981; color: white; }
+        .btn-print-wip  { background: #eab308; color: white; }
+        .btn-print-not  { background: #64748b; color: white; }
+        .btn-dark       { background: #334155; color: white; border: 1px solid #475569; }
+        .btn-toggle     { background: #ea580c; color: white; font-size: 14px; padding: 10px 20px;
+                          margin: 0 auto 20px auto; display: flex; justify-content: center;
+                          width: fit-content; box-shadow: 0 4px 6px rgba(234,88,12,0.3); border-radius: 6px; }
+        .btn-toggle:hover { background: #c2410c; }
+
+        /* ── PASTE AREA ── */
+        .paste-container { background: var(--box-bg); border: 2px dashed #eab308; padding: 20px; border-radius: 8px;
+                           text-align: center; margin-bottom: 20px; }
+        .paste-textarea  { width: 100%; height: 80px; margin-top: 10px; padding: 10px; border-radius: 6px; background: var(--input-bg); color: var(--input-text);
+                           border: 1px solid #ca8a04; font-family: monospace; resize: vertical; font-size: 12px; }
+        .ac-input-group  { display: flex; gap: 10px; justify-content: center; margin-bottom: 10px; align-items: center; flex-wrap: wrap; }
+        .ac-input        { padding: 8px; font-size: 15px; font-weight: bold; text-align: center; background: var(--input-bg); color: var(--input-text);
+                           border: 2px solid #ca8a04; border-radius: 6px; width: 150px; outline: none; }
+        .ac-input:focus  { border-color: #ea580c; box-shadow: 0 0 5px rgba(234,88,12,0.5); }
+        .override-box    { background: rgba(220,38,38,0.1); border: 1px solid #fca5a5; padding: 8px 15px; border-radius: 6px; display: inline-block; margin: 5px; }
+        .override-label  { cursor: pointer; color: #ef4444; font-weight: bold; font-size: 13px; display: flex; align-items: center; gap: 8px; }
+        .override-checkbox { width: 16px; height: 16px; cursor: pointer; }
+        .action-mode-box { background: rgba(37,99,235,0.1); border: 1px solid #bae6fd; padding: 8px 15px; border-radius: 6px; display: inline-flex; gap: 15px; margin: 5px; align-items: center; }
+        .mode-label      { cursor: pointer; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 5px; color: var(--text); }
+
+        /* ── CONTROLS ── */
+        .controls { background: var(--box-bg); padding: 15px; border-radius: 8px; margin-bottom: 20px;
+                    display: flex; gap: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); flex-wrap: wrap; align-items: center; transition: 0.3s; }
+        input[type="text"].search-box, select.filter-box { 
+            padding: 8px; border: 1px solid var(--border); border-radius: 6px; flex: 1; outline: none; min-width: 120px; font-weight: 500; font-size: 13px; background: var(--input-bg); color: var(--input-text);
+        }
+        input[type="text"].search-box:focus, select.filter-box:focus { border-color: #0284c7; }
+
+        /* ── TABLE STRUCTURE ── */
+        .table-wrap { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; background: var(--box-bg); border-radius: 8px;
+                overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); min-width: 1000px; transition: 0.3s; }
+        
+        /* ── HEADER & CELLS ALIGNMENT ── */
+        th { background: var(--th-bg); padding: 10px 4px; text-align: center; color: var(--th-text); font-weight: 700;
+             border-bottom: 2px solid var(--border); font-size: 11px; text-transform: uppercase; position: sticky; top: 0; white-space: nowrap; transition: 0.3s; }
+        td { padding: 6px 4px; border-bottom: 1px solid var(--tr-border); font-size: 12px; vertical-align: middle; text-align: center; transition: 0.3s; }
+        
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--tr-hover); }
+
+        /* ── UNIFIED TABLE INPUTS ── */
+        .name-input, .wo-input, .remark-input, .status-drop { 
+            width: 100%; height: 26px; box-sizing: border-box; text-align: center; outline: none; border-radius: 4px; font-size: 11px; transition: 0.2s; 
+            border: 1px solid var(--border); background: var(--input-bg); color: var(--input-text);
+        }
+        
+        .name-input:focus { border-color: var(--install-color); box-shadow: 0 0 0 2px rgba(37,99,235,0.1); }
+        
+        .wo-input { font-weight: bold; font-size: 11px; padding: 2px; }
+        .wo-input:focus { border-color: #0284c7; box-shadow: 0 0 0 2px rgba(2,132,199,0.2); }
+        
+        .remark-input { border: 1px dashed var(--remark-border); background: var(--remark-bg); padding: 2px 4px; font-size: 11px; }
+        .remark-input:focus { border-color: #eab308; background: var(--input-bg); box-shadow: 0 0 0 2px rgba(234,179,8,0.2); }
+        
+        .status-drop { font-weight: 600; cursor: pointer; text-align-last: center; padding: 2px; }
+        
+        /* ── DATES UI ── */
+        .dates-container { display: flex; gap: 4px; margin-top: 4px; width: 100%; justify-content: center; }
+        .date-box { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; }
+        .date-label { font-size: 9px; font-weight: bold; color: var(--badge-text); margin-bottom: 2px; text-transform: uppercase; }
+        .date-input { width: 100%; height: 24px; padding: 2px; box-sizing: border-box; font-size: 10px; border: 1px solid var(--border); border-radius: 4px; outline: none; background: var(--input-bg); cursor: text; color: var(--input-text); font-family: monospace; text-align: center; }
+        .date-input:focus { border-color: var(--install-color); box-shadow: 0 0 0 2px rgba(37,99,235,0.2); }
+
+        /* ── STATUS COLORS (VIBRANT) ── */
+        .qc-pass td { background: #86efac !important; color: #064e3b !important; font-weight: 700; }
+        .qc-pass:hover td { background: #4ade80 !important; }
+        .qc-wip  td { background: #fde047 !important; color: #422006 !important; font-weight: 700; }
+        .qc-wip:hover td  { background: #facc15 !important; }
+
+        /* DARK MODE SPECIFIC STATUS COLORS */
+        body.dark-mode .qc-pass td { background: #064e3b !important; color: #86efac !important; }
+        body.dark-mode .qc-pass:hover td { background: #065f46 !important; }
+        body.dark-mode .qc-wip td { background: #713f12 !important; color: #fde047 !important; }
+        body.dark-mode .qc-wip:hover td { background: #854d0e !important; }
+
+        /* ── CABLE DETAILS ── */
+        .cable-id    { color: #0ea5e9; font-weight: bold; font-size: 13px; letter-spacing: 0.5px; margin-bottom: 2px; }
+        .part-number { font-size: 10px; color: var(--badge-text); font-family: monospace; background: var(--badge-bg); padding: 2px 4px; border-radius: 3px; display: inline-block; }
+        .zone-badge  { background: var(--badge-bg); padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; color: var(--badge-text); display: inline-block; border: 1px solid var(--border); white-space: nowrap; }
+        .action-badge   { padding: 3px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; display: inline-block; text-transform: uppercase; white-space: nowrap; }
+        .action-install { background: #1e3a8a; color: #93c5fd; border: 1px solid #1e3a8a; }
+        body:not(.dark-mode) .action-install { background: #dbeafe; color: #2563eb; border: 1px solid #bfdbfe; }
+        
+        .action-remove  { background: #7f1d1d; color: #fca5a5;  border: 1px solid #7f1d1d; }
+        body:not(.dark-mode) .action-remove { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; }
+
+        .row-num        { font-weight: bold; color: var(--badge-text); font-size: 11px; }
+        .btn-delete-row { background: #fee2e2; color: #dc2626; border: 1px solid #fecaca; border-radius: 4px; padding: 2px 6px; cursor: pointer; font-size: 12px; font-weight: bold; transition: 0.2s; }
+        body.dark-mode .btn-delete-row { background: #7f1d1d; color: #fca5a5; border-color:#991b1b; }
+        .btn-delete-row:hover { background: #dc2626; color: white; }
+        .btn-add-pdf  { font-size: 9px; background: var(--badge-bg); color: var(--badge-text); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; cursor: pointer; font-weight: bold; transition: 0.2s; margin-top: 4px; display: inline-block; }
+        .btn-add-pdf:hover { filter: brightness(1.2); }
+        .btn-edit-pdf { background: none; border: none; cursor: pointer; font-size: 11px; padding: 0 2px; opacity: 0.6; transition: 0.2s; }
+        .btn-edit-pdf:hover { opacity: 1; transform: scale(1.2); }
+
+        /* ── CLOUD STATUS ── */
+        .cloud-status { font-size: 11px; background: rgba(0,0,0,0.2); padding: 4px 8px; border-radius: 4px; display: inline-flex; align-items: center; gap: 4px; margin-top: 4px; }
+        .cloud-status.online  { color: #86efac; }
+        .cloud-status.offline { color: #fca5a5; }
+
+        /* ── MODALS ── */
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; backdrop-filter: blur(2px); }
+        .modal-box { display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); background: var(--box-bg); padding: 25px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 1000; width: 360px; max-width: 95vw; color: var(--text); border: 1px solid var(--border); }
+        .modal-add      { border-top: 5px solid #8b5cf6; }
+        .modal-confirm  { border-top: 5px solid #ef4444; text-align: center; }
+        .modal-pdf      { border-top: 5px solid #0284c7; }
+        .modal-title    { margin: 0 0 14px; color: var(--text); font-size: 17px; }
+        .modal-msg      { font-size: 14px; color: var(--badge-text); margin-bottom: 18px; line-height: 1.5; }
+        .modal-icon     { font-size: 38px; margin-bottom: 10px; }
+        .modal-input    { width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 14px; outline: none; background: var(--input-bg); color: var(--input-text); }
+        .modal-input:focus { border-color: #8b5cf6; }
+        .modal-buttons  { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+
+        /* ── TOAST ── */
+        .toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white; padding: 10px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; z-index: 2000; opacity: 0; transform: translateY(10px); transition: opacity 0.25s, transform 0.25s; pointer-events: none; max-width: 300px; border: 1px solid #334155; }
+        .toast.show { opacity: 1; transform: translateY(0); }
+
+        /* ── EMPTY STATE ── */
+        .empty-row td { text-align: center; padding: 50px; color: var(--badge-text); font-size: 14px; }
+    </style>
+</head>
+<body onload="checkTheme()">
+
+<!-- MAIN APP -->
+<div id="appContainer">
+    <div class="header">
+        <div>
+            <h1 id="appTitle" style="margin:0; font-size:22px;">Master Cable Tracker</h1>
+            <small style="opacity:0.8; font-size:13px;">V13.14 | Dark Mode & Ultimate Grid</small>
+            <div id="cloudIndicator" class="cloud-status online">☁️ Server Connected</div>
+        </div>
+        <div class="stats">
+            <button class="btn btn-dark" id="darkModeBtn" onclick="toggleDarkMode()">🌙 Dark Mode</button>
+            <button class="btn btn-export" onclick="window.exportData()">💾 Backup Local</button>
+            <button class="btn btn-import" onclick="document.getElementById('importFile').click()">📂 Restore Local</button>
+            <input type="file" id="importFile" style="display:none" accept=".json" onchange="window.importData(event)">
+
+            <button class="btn btn-sync" onclick="window.loadData()">🔄 Force Sync</button>
+
+            <button class="btn btn-print-done" style="margin-left:10px;" onclick="window.printReport('done')">🖨️ Completed</button>
+            <button class="btn btn-print-wip"  onclick="window.printReport('wip')">🖨️ Lay Down</button>
+            <button class="btn btn-print-not"  onclick="window.printReport('notstarted')">🖨️ Not Started</button>
+
+            <button class="btn btn-reset" style="margin-left:10px;" onclick="window.confirmReset()">⚠️ Reset A/C</button>
+
+            <div class="stat-box" style="margin-left:10px;">
+                <div id="total-count" style="font-size:18px; font-weight:bold;">0</div><small>Cables</small>
+            </div>
+            <div class="stat-box">
+                <div id="completion-pct" style="font-size:18px; font-weight:bold;">0</div><small>Completed</small>
+            </div>
+            <div class="stat-box">
+                <div id="wip-count" style="font-size:18px; font-weight:bold;">0</div><small>WIP</small>
+            </div>
+        </div>
+    </div>
+
+    <button class="btn-toggle" onclick="window.togglePasteArea()">⚙️ Fleet Setup & Smart Paste</button>
+
+    <div id="pasteAreaContainer" class="paste-container" style="display:none;">
+        <div class="ac-input-group">
+            <span style="font-weight:bold; color:var(--text);">Target A/C:</span>
+            <input type="text" id="acNumberInput" class="ac-input" placeholder="e.g., 49066"
+                   onkeydown="if(event.key==='Enter') window.switchAircraft()">
+            <button class="btn" style="background:#475569; color:white;" onclick="window.switchAircraft()">🔄 Load A/C</button>
+        </div>
+        <div>
+            <div class="action-mode-box">
+                <span style="font-size:13px;">Paste Mode:</span>
+                <label class="mode-label">
+                    <input type="radio" name="pasteActionType" value="Install" checked> 🟢 Install
+                </label>
+                <label class="mode-label">
+                    <input type="radio" name="pasteActionType" value="Remove"> 🔴 Remove
+                </label>
+            </div>
+            <div class="override-box">
+                <label class="override-label">
+                    <input type="checkbox" id="forceLoadAll" class="override-checkbox">
+                    ⚠️ Load All Cables (Ignore NOT EFFECTIVE Filter)
+                </label>
+            </div>
+        </div>
+        <hr style="border:1px dashed var(--border); margin:5px 0 15px;">
+        <span style="color:var(--text); font-size:12px; font-weight:bold;">Paste Data Here. (Supports Standard Columns OR IPACO Master Cable Matrix format)</span>
+        <textarea id="pasteArea" class="paste-textarea" placeholder="Paste (Ctrl+V) Excel data here..." oninput="window.autoPasteTrigger()"></textarea>
+    </div>
+
+    <div class="controls">
+        <input type="text" id="search" class="search-box" placeholder="🔍 Search C/A, P/N, Tech Name, Date, W.O..." oninput="window.filterTable()">
+        <select id="filter-progress" class="filter-box" onchange="window.filterTable()">
+            <option value="">All Progress</option>
+            <option value="Completed">✅ Completed</option>
+            <option value="Lay Down">⏳ Lay Down / Removing</option>
+            <option value="Not Started">❌ Not Started</option>
+        </select>
+        <select id="filter-sb" class="filter-box" onchange="window.filterTable()"><option value="">All SBs</option></select>
+        <select id="filter-action" class="filter-box" onchange="window.filterTable()">
+            <option value="">All Tasks</option>
+            <option value="Install">Installations</option>
+            <option value="Remove">Removals</option>
+        </select>
+        <select id="filter-zone" class="filter-box" onchange="window.filterTable()"><option value="">All Zones</option></select>
+        <button class="btn btn-add" onclick="window.openAddModal()">➕ Add Cable</button>
+    </div>
+
+    <div class="table-wrap">
+    <table id="cableTable">
+        <thead>
+            <tr>
+                <th width="3%">#</th>
+                <th width="5%">SB #</th>
+                <th width="5%">W.O</th>
+                <th width="6%">Task</th>
+                <th width="8%">Remarks</th>
+                <th width="24%">Cable Details</th>
+                <th width="6%">Zone</th>
+                <th width="10%">Tech Name</th>
+                <th width="10%">QC Name</th>
+                <th width="19%">Status & Dates</th>
+                <th width="4%">🗑️</th>
+            </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+    </table>
+    </div>
+</div>
+
+<!-- ADD CABLE MODAL -->
+<div id="modalOverlay" class="modal-overlay" onclick="window.closeModals()"></div>
+<div id="addModal" class="modal-box modal-add">
+    <h3 class="modal-title">➕ Add Cable</h3>
+    <input type="text" id="manualSB"   class="modal-input" placeholder="SB Number (e.g., 005)">
+    <input type="text" id="manualWO"   class="modal-input" placeholder="Work Order (W.O)">
+    <select id="manualAction" class="modal-input" style="font-weight:bold;">
+        <option value="Install">🟢 Install</option>
+        <option value="Remove">🔴 Remove</option>
+    </select>
+    <input type="text" id="manualID"   class="modal-input" placeholder="Cable ID / C/A (Required)"
+           style="border-color:#8b5cf6;" onkeydown="if(event.key==='Enter') window.addManualCable()">
+    <input type="text" id="manualPN"   class="modal-input" placeholder="Part Number (P/N)">
+    <input type="text" id="manualZone" class="modal-input" placeholder="Zone (leave blank = auto-detect)">
+    <div style="text-align:left; font-size:13px; color:var(--text); margin-bottom:5px; font-weight:bold;">🔗 Google Drive Link (PDF):</div>
+    <input type="text" id="manualPDF"  class="modal-input" placeholder="Paste Drive link here...">
+    <div class="modal-buttons">
+        <button class="btn" style="background:#ef4444; color:white; width:48%; justify-content:center;" onclick="window.closeModals()">Cancel</button>
+        <button class="btn" style="background:#10b981; color:white; width:48%; justify-content:center;" onclick="window.addManualCable()">Save Cable</button>
+    </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div id="confirmOverlay" class="modal-overlay" onclick="window.closeConfirm()"></div>
+<div id="confirmModal" class="modal-box modal-confirm">
+    <div class="modal-icon" id="confirmIcon">⚠️</div>
+    <h3 class="modal-title" id="confirmTitle">Confirm</h3>
+    <p  class="modal-msg"   id="confirmMsg">Are you sure?</p>
+    <div class="modal-buttons">
+        <button class="btn" style="background:var(--badge-bg); color:var(--text); border:1px solid var(--border); width:45%; justify-content:center;" onclick="window.closeConfirm()">Cancel</button>
+        <button class="btn" id="confirmOkBtn" style="background:#ef4444; color:white; width:45%; justify-content:center;">Confirm</button>
+    </div>
+</div>
+
+<!-- PDF LINK MODAL -->
+<div id="pdfOverlay" class="modal-overlay" onclick="window.closePDFModal()"></div>
+<div id="pdfModal" class="modal-box modal-pdf">
+    <h3 class="modal-title">🔗 Edit PDF Link</h3>
+    <p id="pdfModalCableId" style="font-weight:bold; color:#0284c7; margin-bottom:12px;"></p>
+    <input type="text" id="pdfLinkInput" class="modal-input" placeholder="Paste Google Drive link (https://...)..."
+           onkeydown="if(event.key==='Enter') window.savePDFLink()">
+    <div class="modal-buttons">
+        <button class="btn" style="background:var(--badge-bg); color:var(--text); border:1px solid var(--border); width:45%; justify-content:center;" onclick="window.closePDFModal()">Cancel</button>
+        <button class="btn" style="background:#0284c7; color:white; width:45%; justify-content:center;" onclick="window.savePDFLink()">Save Link</button>
+    </div>
+</div>
+
+<!-- EXPORT MODAL -->
+<div id="exportOverlay" class="modal-overlay" onclick="window.closeExportModal()"></div>
+<div id="exportModal" class="modal-box modal-pdf" style="border-top-color: #3b82f6;">
+    <h3 class="modal-title">💾 Export Backup</h3>
+    <p class="modal-msg">How would you like to export the data for A/C <strong id="exportACLabel" style="color:#0284c7;"></strong>?</p>
+    <div style="display:flex; flex-direction:column; gap:10px;">
+        <button class="btn" style="background:#3b82f6; color:white; justify-content:center; padding:10px;" onclick="window.executeExport('full')">📦 Full Backup (Everything)</button>
+        <button class="btn" style="background:#f97316; color:white; justify-content:center; padding:10px;" onclick="window.executeExport('template')">📋 Template Only (No Progress)</button>
+        <button class="btn" style="background:var(--badge-bg); color:var(--text); border:1px solid var(--border); justify-content:center; padding:10px;" onclick="window.closeExportModal()">Cancel</button>
+    </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+    // ── DARK MODE LOGIC ──
+    function checkTheme() {
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('darkModeBtn').innerText = '☀️ Light Mode';
+        }
+    }
+    window.toggleDarkMode = function() {
+        document.body.classList.toggle('dark-mode');
+        const isDark = document.body.classList.contains('dark-mode');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        document.getElementById('darkModeBtn').innerText = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+    };
+</script>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getDatabase, ref as dbRef, set, onValue, child, get } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+// ── FIREBASE ──
+const firebaseConfig = {
+    apiKey: "AIzaSyBBEX5DloP2tRQJe49tOaqSYpD0fdVS2vQ",
+    authDomain: "cable-tracker-f1223.firebaseapp.com",
+    databaseURL: "https://cable-tracker-f1223-default-rtdb.firebaseio.com",
+    projectId: "cable-tracker-f1223",
+    storageBucket: "cable-tracker-f1223.firebasestorage.app",
+    messagingSenderId: "511930430243",
+    appId: "1:511930430243:web:f3877576ef0f0645f95296"
+};
+const db = getDatabase(initializeApp(firebaseConfig));
+
+// ── STATE ──
+window.cableData    = [];
+window.filteredData = [];
+window.currentAC    = "";
+let _pdfTargetIdx   = -1;  
+let _liveListener   = null; 
+
+// ── XSS PROTECTION ──
+window.escapeHTML = function(str) {
+    if (str === null || str === undefined) return '';
+    return str.toString()
+        .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")
+        .replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+};
+
+window.safeURL = function(url) {
+    if (!url) return "";
+    url = url.trim();
+    return (url.startsWith("http://") || url.startsWith("https://")) ? window.escapeHTML(url) : "";
+};
+
+// ── PROTECTED saveData (Fixes Overwrite Bug) ──
+let _saveTimer;
+window.saveData = function() {
+    if (!window.currentAC) return;
+    
+    // ربط الداتا برقم الطيارة لحظة الحفظ عشان نمنع التداخل
+    const targetAC = window.currentAC;
+    const dataToSave = JSON.parse(JSON.stringify(window.cableData)); 
+
+    clearTimeout(_saveTimer);
+    _saveTimer = setTimeout(() => {
+        set(dbRef(db, 'cables/' + targetAC), dataToSave)
+            .catch(err => showToast('❌ Cloud save failed: ' + err.message));
+    }, 600);
+};
+
+// ── UPDATE REMARK (PERSISTENT) ──
+window.updateRemark = function(globalIdx, val) {
+    if (globalIdx < 0 || globalIdx >= window.cableData.length) return;
+    const cable = window.cableData[globalIdx];
+    cable.remark = val;
+    
+    // تأمين اسم الكابل عشان الفايربيز
+    let safeId = (cable.id || '').replace(/[.#$\[\]]/g, '_');
+    const targetAC = window.currentAC; 
+    
+    if (val.trim() === '') {
+        set(dbRef(db, `remarks/${targetAC}/${safeId}`), null);
+    } else {
+        set(dbRef(db, `remarks/${targetAC}/${safeId}`), val);
+    }
+    
+    window.saveData(); 
+};
+
+// ── TOAST ──
+let _toastTimer;
+function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.innerText = msg; t.classList.add('show');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ── CONFIRM MODAL ──
+let _confirmCb = null;
+function openConfirm(icon, title, msg, btnLabel, cb) {
+    document.getElementById('confirmIcon').innerText  = icon;
+    document.getElementById('confirmTitle').innerText = title;
+    document.getElementById('confirmMsg').innerText   = msg;
+    document.getElementById('confirmOkBtn').innerText = btnLabel;
+    _confirmCb = cb;
+    document.getElementById('confirmOverlay').style.display = 'block';
+    document.getElementById('confirmModal').style.display   = 'block';
+}
+window.closeConfirm = function() {
+    document.getElementById('confirmOverlay').style.display = 'none';
+    document.getElementById('confirmModal').style.display   = 'none';
+    _confirmCb = null;
+};
+document.getElementById('confirmOkBtn').addEventListener('click', () => {
+    if (_confirmCb) _confirmCb();
+    window.closeConfirm();
+});
+
+// ── INIT ──
+window.onload = function() { window.initApp(); };
+document.addEventListener('keydown', e => { 
+    if (e.key === 'Escape') { 
+        window.closeModals(); window.closeConfirm(); window.closePDFModal(); 
+        if(window.closeExportModal) window.closeExportModal();
+    } 
+});
+
+window.initApp = function() {
+    const fileName  = decodeURIComponent(window.location.pathname).split('/').pop() || '';
+    const fileMatch = fileName.match(/\d{4,5}/);
+    window.currentAC = fileMatch
+        ? fileMatch[0]
+        : (sessionStorage.getItem('active_ac_tab') || localStorage.getItem('last_global_ac_v11') || '');
+
+    if (window.currentAC) {
+        document.getElementById('acNumberInput').value = window.currentAC;
+        _applyAC();
+        window.loadData();
+    } else {
+        document.title = 'Master Cable Tracker';
+        document.getElementById('appTitle').innerText = 'Master Cable Tracker — (Please Load A/C)';
+        document.getElementById('tableBody').innerHTML =
+            '<tr class="empty-row"><td colspan="11">Enter Target A/C number above and click Load A/C.</td></tr>';
+    }
+};
+
+function _applyAC() {
+    document.getElementById('appTitle').innerText = 'Master Cable Tracker — A/C ' + window.currentAC;
+    document.title = 'A/C ' + window.currentAC + ' — Tracker';
+    sessionStorage.setItem('active_ac_tab', window.currentAC);
+    localStorage.setItem('last_global_ac_v11', window.currentAC);
+}
+
+// ── LOAD DATA (LIVE SYNC & REMARKS) ──
+window.loadData = function() {
+    return new Promise((resolve, reject) => {
+        if (!window.currentAC) return resolve();
+        
+        if (_liveListener) { _liveListener(); }
+
+        document.getElementById('tableBody').innerHTML =
+            '<tr><td colspan="11" style="text-align:center; padding:30px; font-weight:bold;">☁️ Syncing Live from Cloud…</td></tr>';
+
+        const acRef = child(dbRef(db), 'cables/' + window.currentAC);
+        
+        _liveListener = onValue(acRef, async (snapshot) => {
+            const remSnap = await get(child(dbRef(db), 'remarks/' + window.currentAC));
+            const persistentRemarks = remSnap.exists() ? remSnap.val() : {};
+
+            if (snapshot.exists()) {
+                const val = snapshot.val();
+                window.cableData = Array.isArray(val) ? val : Object.values(val);
+                
+                window.cableData.forEach(c => {
+                    if (c.statusDate && !c.layDownDate && !c.completedDate) {
+                        if (c.status === 'Completed') {
+                            c.completedDate = c.statusDate;
+                            c.layDownDate = c.statusDate; 
+                        } else {
+                            c.layDownDate = c.statusDate;
+                        }
+                        delete c.statusDate;
+                    }
+
+                    let safeId = (c.id || '').replace(/[.#$\[\]]/g, '_');
+                    if (persistentRemarks[safeId]) {
+                        c.remark = persistentRemarks[safeId];
+                    } else if (!c.remark) {
+                        c.remark = '';
+                    }
+                });
+            } else { 
+                window.cableData = []; 
+            }
+
+            const activeEl = document.activeElement;
+            const isTyping = activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'SELECT') && activeEl.closest('#cableTable');
+
+            if (!isTyping) {
+                window.updateDropdowns();
+                window.filterTable();
+            }
+
+            const ind = document.getElementById('cloudIndicator');
+            ind.innerText = '🟢 Cloud Live Sync'; ind.className = 'cloud-status online';
+            resolve();
+        }, (err) => {
+            const ind = document.getElementById('cloudIndicator');
+            ind.innerText = '☁️ Cloud Error'; ind.className = 'cloud-status offline';
+            showToast('❌ Sync failed: ' + err.message);
+            reject(err);
+        });
+    });
+};
+
+// ── PROTECTED SWITCH AIRCRAFT (Zero-Overlap Guarantee) ──
+window.switchAircraft = async function() {
+    const newAC = document.getElementById('acNumberInput').value.trim();
+    if (!newAC) { showToast('⚠️ Enter A/C number first!'); return; }
+    if (newAC === window.currentAC) return;
+
+    // 1. الإغلاق التام لأي عمليات حفظ للطيارة القديمة
+    clearTimeout(_saveTimer); 
+    
+    // 2. فصل الاتصال الحي للطيارة القديمة فوراً
+    if (_liveListener) { 
+        _liveListener(); 
+        _liveListener = null; 
+    }
+
+    // 3. تغيير مسار الطيارة
+    window.currentAC = newAC;
+    
+    // 4. تصفير الذاكرة والواجهة قبل تحميل أي داتا جديدة
+    window.cableData = []; 
+    window.filteredData = [];
+    document.getElementById('tableBody').innerHTML = '<tr><td colspan="11" style="text-align:center; padding:30px;">🔄 Switching Aircraft...</td></tr>';
+
+    _applyAC();
+    document.getElementById('filter-sb').value   = '';
+    document.getElementById('filter-zone').value = '';
+    
+    await window.loadData();
+};
+
+window.confirmReset = function() {
+    if (!window.currentAC) { showToast('⚠️ Please Load A/C first.'); return; }
+    openConfirm('🚨', 'Reset A/C ' + window.currentAC + '?',
+        'This will permanently delete ALL ' + window.cableData.length + ' cable(s) from Cloud for A/C ' + window.currentAC + '. (Note: Persistent remarks will remain)',
+        'Delete All',
+        () => {
+            set(dbRef(db, 'cables/' + window.currentAC), null)
+                .then(() => {
+                    window.cableData = [];
+                    window.updateDropdowns(); window.filterTable();
+                    showToast('🗑️ A/C ' + window.currentAC + ' cleared from Cloud.');
+                })
+                .catch(err => showToast('❌ Reset failed: ' + err.message));
+        }
+    );
+};
+
+window.togglePasteArea = function() {
+    const el = document.getElementById('pasteAreaContainer');
+    el.style.display = (el.style.display === 'none' || !el.style.display) ? 'block' : 'none';
+};
+
+// ── ADD CABLE MODAL ──
+window.openAddModal = function() {
+    if (!window.currentAC) { showToast('⚠️ Please Load A/C first!'); return; }
+    document.getElementById('modalOverlay').style.display = 'block';
+    document.getElementById('addModal').style.display     = 'block';
+    document.getElementById('manualID').focus();
+};
+
+window.closeModals = function() {
+    document.getElementById('modalOverlay').style.display = 'none';
+    document.getElementById('addModal').style.display     = 'none';
+    ['manualSB','manualWO','manualID','manualPN','manualZone','manualPDF'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('manualAction').value = 'Install';
+};
+
+window.addManualCable = function() {
+    const rawSB  = document.getElementById('manualSB').value.trim();
+    const wo     = document.getElementById('manualWO').value.trim();
+    const action = document.getElementById('manualAction').value;
+    const id     = document.getElementById('manualID').value.trim().toUpperCase();
+    const pn     = document.getElementById('manualPN').value.trim().toUpperCase() || '---';
+    const zone   = document.getElementById('manualZone').value.trim() || window.getAWZone(id);
+    const pdf    = document.getElementById('manualPDF').value.trim();
+
+    if (!id) { showToast('⚠️ Cable ID is required!'); document.getElementById('manualID').focus(); return; }
+
+    const sbMatch = rawSB.match(/\d{3}/);
+    const finalSB = sbMatch ? sbMatch[0] : (rawSB || 'N/A');
+
+    if (window.cableData.find(c => c.id === id && c.sb === finalSB && c.action === action)) {
+        showToast('⚠️ This cable already exists!'); return;
+    }
+
+    window.cableData.push({ sb: finalSB, wo, action, id, pn, zone, tech: '', inspector: '', status: 'Not Started', qc: false, pdf, layDownDate: '', completedDate: '', remark: '' });
+    window.saveData(); window.updateDropdowns(); window.filterTable(); window.closeModals();
+    showToast('✅ Cable ' + id + ' added to A/C ' + window.currentAC);
+};
+
+// ── PDF LINK MODAL ──
+window.editPDF = function(globalIdx) {
+    _pdfTargetIdx = globalIdx;
+    const item = window.cableData[globalIdx];
+    if (!item) return;
+    document.getElementById('pdfModalCableId').innerText = 'Cable: ' + item.id + ' (SB ' + item.sb + ')';
+    document.getElementById('pdfLinkInput').value = item.pdf || '';
+    document.getElementById('pdfOverlay').style.display = 'block';
+    document.getElementById('pdfModal').style.display   = 'block';
+    document.getElementById('pdfLinkInput').focus();
+};
+
+window.closePDFModal = function() {
+    document.getElementById('pdfOverlay').style.display = 'none';
+    document.getElementById('pdfModal').style.display   = 'none';
+    _pdfTargetIdx = -1;
+};
+
+window.savePDFLink = function() {
+    if (_pdfTargetIdx < 0 || _pdfTargetIdx >= window.cableData.length) return;
+    window.cableData[_pdfTargetIdx].pdf = document.getElementById('pdfLinkInput').value.trim();
+    window.saveData(); window.filterTable(); window.closePDFModal();
+    showToast('🔗 PDF link saved');
+};
+
+// ── EXPORT / IMPORT MODALS ──
+window.exportData = function() {
+    if (!window.currentAC) { showToast('⚠️ Please Load A/C first.'); return; }
+    document.getElementById('exportACLabel').innerText = window.currentAC;
+    document.getElementById('exportOverlay').style.display = 'block';
+    document.getElementById('exportModal').style.display = 'block';
+};
+
+window.closeExportModal = function() {
+    document.getElementById('exportOverlay').style.display = 'none';
+    document.getElementById('exportModal').style.display = 'none';
+};
+
+window.executeExport = function(type) {
+    let dataToExport = [];
+    
+    if (type === 'full') {
+        dataToExport = window.cableData;
+    } else if (type === 'template') {
+        dataToExport = JSON.parse(JSON.stringify(window.cableData));
+        dataToExport.forEach(c => {
+            c.wo = '';
+            c.tech = '';
+            c.inspector = '';
+            c.status = 'Not Started';
+            c.qc = false;
+            c.layDownDate = '';
+            c.completedDate = '';
+        });
+    }
+    
+    const blob = new Blob([JSON.stringify(dataToExport, null, 2)], { type:'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const fileName = type === 'full' ? `AC_${window.currentAC}_Full_Backup.json` : `AC_${window.currentAC}_Template_NoProgress.json`;
+    
+    const a    = Object.assign(document.createElement('a'), { href:url, download: fileName });
+    a.click(); URL.revokeObjectURL(url);
+    
+    window.closeExportModal();
+    showToast(`💾 ${type === 'full' ? 'Full Backup' : 'Template'} saved — A/C ` + window.currentAC);
+};
+
+window.importData = function(event) {
+    if (!window.currentAC) { showToast('⚠️ Please Load A/C first.'); return; }
+    const file = event.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            const imp = JSON.parse(e.target.result);
+            const arr = Array.isArray(imp) ? imp : (imp && typeof imp==='object' ? Object.values(imp) : null);
+            if (!arr || !arr.length) throw new Error('Empty or invalid format');
+            window.cableData = arr;
+            window.saveData(); window.updateDropdowns(); window.filterTable();
+            showToast('✅ ' + arr.length + ' cables restored & synced to Cloud');
+        } catch(err) { showToast('❌ ' + err.message); }
+        event.target.value = '';
+    };
+    reader.readAsText(file);
+};
+
+// ── ZONE HELPER ──
+window.getAWZone = function(rawId) {
+    if (!rawId) return 'General';
+    const id = rawId.trim().toUpperCase();
+    if (id.startsWith('A') || id.includes('RF') || id.includes('OPTICAL')) return 'Nose';
+    if (id.startsWith('B')) return 'Upper Fuselage';
+    if (id.startsWith('C') || id.startsWith('PL40P3') || id.startsWith('A359')) return 'Lower Fuselage';
+    if (id.startsWith('D')) return 'Tail Boom';
+    if (id.startsWith('E') || id.includes('SP22') || id.includes('282N') || id.includes('WAIT')) return 'MSSN CNSL';
+    if (id.startsWith('F')) return 'Vertical Fin';
+    if (id.includes('1553') || id.includes('A9P1') || id.includes('WIRE')) return 'Multiple Zones';
+    return 'General';
+};
+
+// ── UPDATED DROPDOWNS ──
+window.updateDropdowns = function() {
+    const sbSel   = document.getElementById('filter-sb');
+    const zoneSel = document.getElementById('filter-zone');
+    const prevSB  = sbSel.value, prevZone = zoneSel.value;
+
+    const uSBs   = [...new Set(window.cableData.map(c => c.sb).filter(Boolean))]
+                    .sort((a,b) => a.localeCompare(b, undefined, {numeric:true}));
+    const uZones = [...new Set(window.cableData.map(c => c.zone).filter(Boolean))].sort();
+
+    sbSel.innerHTML   = '<option value="">All SBs</option>'   + uSBs.map(s => `<option value="${window.escapeHTML(s)}">SB ${window.escapeHTML(s)}</option>`).join('');
+    zoneSel.innerHTML = '<option value="">All Zones</option>' + uZones.map(z => `<option value="${window.escapeHTML(z)}">${window.escapeHTML(z)}</option>`).join('');
+
+    if (uSBs.includes(prevSB))     sbSel.value   = prevSB;
+    if (uZones.includes(prevZone)) zoneSel.value = prevZone;
+};
+
+// ── SMART PASTE & EXCEL MATRIX PARSER ──
+window.autoPasteTrigger = function() {
+    if (document.getElementById('pasteArea').value.length > 20) setTimeout(window.handlePaste, 120);
+};
+
+window.handlePaste = async function() {
+    const text = document.getElementById('pasteArea').value;
+    if (!text.trim() || text.length < 20) return;
+
+    const targetAC = document.getElementById('acNumberInput').value.trim();
+    if (!targetAC) { showToast('⚠️ Enter A/C number first!'); document.getElementById('pasteArea').value = ''; return; }
+    if (targetAC !== window.currentAC) await window.switchAircraft();
+
+    const forceLoad     = document.getElementById('forceLoadAll').checked;
+    const defaultAction = document.querySelector('input[name="pasteActionType"]:checked').value;
+    const delimiter     = text.indexOf('\t') !== -1 ? '\t' : ',';
+
+    let rows = [], curRow = [], curVal = '', inQuote = false;
+    for (let i = 0; i < text.length; i++) {
+        const c = text[i], nC = text[i+1];
+        if (inQuote) {
+            if (c==='"' && nC==='"') { curVal+='"'; i++; }
+            else if (c==='"') { inQuote=false; }
+            else { curVal+=c; }
+        } else {
+            if (c==='"') { inQuote=true; }
+            else if (c===delimiter) { curRow.push(curVal.trim()); curVal=''; }
+            else if (c==='\n' || (c==='\r' && nC==='\n')) {
+                if (c==='\r') i++;
+                curRow.push(curVal.trim()); rows.push(curRow); curRow=[]; curVal='';
+            } else { curVal+=c; }
+        }
+    }
+    if (curVal!=='' || curRow.length>0) { curRow.push(curVal.trim()); rows.push(curRow); }
+    rows = rows.filter(r => r.join('').trim() !== '');
+    if (!rows.length) { document.getElementById('pasteArea').value=''; return; }
+
+    let added = 0, skipped = 0;
+
+    function processCable(sb, wo, action, id, pn, zone, pdf, status, applic) {
+        status = status ? status.toUpperCase().trim() : '';
+        applic = applic ? applic.toUpperCase().trim() : '';
+        if (!forceLoad && (status==='NOT EFFECTIVE' || applic==='FALSE')) { skipped++; return; }
+        
+        id = id ? id.trim().toUpperCase() : '';
+        if (!id || id==='PIN TO PIN' || id==='0' || id==='C/A' || id.length < 3) return;
+
+        const rawSB = (sb || '').trim();
+        const sbM = rawSB.match(/\d{3}/);
+        const finalSB = sbM ? sbM[0] : rawSB;
+        
+        pn = pn ? pn.replace(/<[^>]*>?/gm,'').replace(/[\n\r]/g,' ').trim() : '---';
+        if(pn === '') pn = '---';
+
+        if (!window.cableData.find(c => c.id===id && c.sb===finalSB && c.action===action)) {
+            window.cableData.push({ 
+                sb: finalSB, wo: (wo||'').trim(), action, id, pn, 
+                zone: zone || window.getAWZone(id), tech: '', inspector: '', 
+                status: 'Not Started', qc: false, pdf: (pdf||'').trim(), layDownDate: '', completedDate: '', remark: '' 
+            });
+            added++;
+        }
+    }
+
+    const firstJoined = rows[0].join('').toUpperCase().replace(/\s+/g,'');
+
+    if (firstJoined.includes('INSTALLATION&REMOVAL') || firstJoined.includes('S.B.#')) {
+        let currentSB = '';
+        const zoneMap = {
+            3: 'Nose', 4: 'Nose',
+            5: 'Upper Fuselage', 6: 'Upper Fuselage',
+            7: 'Lower Fuselage', 8: 'Lower Fuselage',
+            9: 'Baggage', 10: 'Baggage',
+            11: 'Tail Boom', 12: 'Tail Boom',
+            13: 'MSSN CNSL', 14: 'MSSN CNSL'
+        };
+
+        for (let r = 0; r < rows.length; r++) {
+            const cols = rows[r];
+            const rowStr = cols.join('').toUpperCase().replace(/\s+/g,'');
+            
+            if (rowStr.includes('INSTALLATION')) continue; 
+            if (rowStr.includes('UPPERFUSELAGE') || rowStr.includes('NOSE')) continue; 
+            if (rowStr === 'LHRHLHRHLHRHLHRHLHRH' || rowStr.startsWith('LHRH')) continue; 
+
+            if (cols[0] && cols[0].trim()) {
+                const sbVal = cols[0].trim();
+                if (sbVal.match(/\d{3}/)) currentSB = sbVal;
+            }
+            if (!currentSB) continue;
+
+            for (let c = 3; c <= 14; c++) {
+                if (cols[c] && cols[c].trim()) {
+                    const cellText = cols[c].replace(/<[^>]*>?/gm,'').trim();
+                    const rawItems = cellText.replace(/\n/g, ',').split(',');
+                    
+                    rawItems.forEach(item => {
+                        let cleanItem = item.trim();
+                        if(!cleanItem) return;
+                        
+                        if (cleanItem.toUpperCase().includes('P/N')) {
+                            let parts = cleanItem.split(/P\/N/i);
+                            let id = parts[0].trim();
+                            let pn = parts[1].trim();
+                            processCable(currentSB, '', defaultAction, id, pn, zoneMap[c], '', '', '');
+                        } else {
+                            let subCables = cleanItem.split(/\s+/);
+                            subCables.forEach(sub => {
+                                processCable(currentSB, '', defaultAction, sub, '---', zoneMap[c], '', '', '');
+                            });
+                        }
+                    });
+                }
+            }
+        }
+    } else {
+        let cSB=0, cApplic=5, cPN=6, cID=defaultAction==='Remove'?7:11, cStatus=-1, cPDF=-1, cWO=-1;
+        const isHeader = firstJoined.includes('SB') || firstJoined.includes('C/A') || firstJoined.includes('P/N');
+
+        if (isHeader) {
+            const h  = rows[0].map(x => x.toUpperCase().replace(/\s+/g,''));
+            const fi = (...tests) => { for(const t of tests){ const i=h.findIndex(x=>x.includes(t)); if(i!==-1) return i; } return -1; };
+            cSB     = fi('SB');
+            cPN     = fi('CABLEP/N','P/N');
+            cID     = fi('C/A','CABLEID','CABLE');
+            cStatus = fi('STATUS');
+            cApplic = fi('APPLIC','APLIC','APP');
+            cPDF    = fi('PDF','LINK');
+            cWO     = fi('W.O','WO','WORKORDER');
+            rows.shift();
+        }
+
+        rows.forEach(cols => {
+            const status = cStatus!==-1 ? cols[cStatus] : '';
+            const applic = cApplic!==-1 ? cols[cApplic] : '';
+            const pdf = cPDF!==-1 ? cols[cPDF] : '';
+            const wo = cWO!==-1 ? cols[cWO] : '';
+            const id = cols[cID];
+            const sb = cols[cSB] || 'N/A';
+            const pn = cols[cPN] || '---';
+
+            processCable(sb, wo, defaultAction, id, pn, '', pdf, status, applic);
+        });
+    }
+
+    window.saveData(); window.updateDropdowns(); window.filterTable();
+    document.getElementById('pasteArea').value = '';
+    showToast('✅ ' + defaultAction + ': ' + added + ' added' + (skipped ? ', ' + skipped + ' skipped' : ''));
+};
+
+// ── DELETE CABLE ──
+window.deleteCable = function(globalIdx) {
+    const item = window.cableData[globalIdx];
+    if (!item) return;
+    openConfirm('🗑️', 'Delete Cable?',
+        'Remove "' + item.id + '" (SB ' + item.sb + ') from Cloud for A/C ' + window.currentAC + '?',
+        'Delete',
+        () => {
+            window.cableData.splice(globalIdx, 1);
+            window.saveData(); window.updateDropdowns(); window.filterTable();
+            showToast('🗑️ Cable deleted.');
+        }
+    );
+};
+
+window.getActionBadge = function(action) {
+    return action === 'Remove'
+        ? '<span class="action-badge action-remove">REMOVE</span>'
+        : '<span class="action-badge action-install">INSTALL</span>';
+};
+
+// ── RENDER TABLE ──
+window.renderTable = function(data) {
+    const tbody = document.getElementById('tableBody');
+    tbody.innerHTML = '';
+    let done = 0, wip = 0;
+
+    if (!data.length) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="11">No cables match the current filters.</td></tr>';
+        _updateStats(0,0,0); return;
+    }
+
+    const fragment = document.createDocumentFragment();
+
+    data.forEach((item, displayIdx) => {
+        const globalIdx = window.cableData.findIndex(c => c.id===item.id && c.sb===item.sb && c.action===item.action);
+
+        if (item.qc) done++;
+        else if (item.status==='Lay Down' || item.status==='Removing') wip++;
+
+        const tr = document.createElement('tr');
+        if (item.qc) tr.className = 'qc-pass';
+        else if (item.status==='Lay Down' || item.status==='Removing') tr.className = 'qc-wip';  
+
+        const isRemove = item.action === 'Remove';
+        const statusOpts = isRemove
+            ? `<option value="Not Started" ${item.status==='Not Started'?'selected':''}>Not Started</option>
+               <option value="Removing"    ${item.status==='Removing'   ?'selected':''}>Removing (WIP)</option>
+               <option value="Completed"   ${item.qc                     ?'selected':''}>Completed</option>`
+            : `<option value="Not Started" ${item.status==='Not Started'?'selected':''}>Not Started</option>
+               <option value="Lay Down"    ${item.status==='Lay Down'   ?'selected':''}>Lay Down (WIP)</option>
+               <option value="Completed"   ${item.qc                     ?'selected':''}>Completed</option>`;
+
+        const safeLink = window.safeURL(item.pdf);
+        const pdfBadge = safeLink
+            ? `<div style="margin-top:5px; display:flex; gap:5px; align-items:center; justify-content:center;">
+                 <a href="${safeLink}" target="_blank" rel="noopener noreferrer"
+                    style="font-size:10px; background:#dc2626; color:white; padding:3px 6px; border-radius:4px; text-decoration:none; font-weight:bold;">📄 Routing PDF</a>
+                 <button onclick="window.editPDF(${globalIdx})" class="btn-edit-pdf" title="Edit Link">✏️</button>
+               </div>`
+            : `<div style="margin-top:5px; text-align:center;">
+                 <button onclick="window.editPDF(${globalIdx})" class="btn-add-pdf">➕ Add PDF Link</button>
+               </div>`;
+
+        let datesHtml = '';
+        if (item.status === 'Lay Down' || item.status === 'Removing') {
+            datesHtml = `
+                <div class="dates-container" style="justify-content:center;">
+                    <div class="date-box" style="flex:none; width:80%;">
+                        <span class="date-label">Start (Lay Down)</span>
+                        <input type="date" class="date-input" value="${window.escapeHTML(item.layDownDate || '')}" onchange="window.update(${globalIdx}, 'layDownDate', this.value)" title="تاريخ البدء">
+                    </div>
+                </div>
+            `;
+        } else if (item.status === 'Completed') {
+            datesHtml = `
+                <div class="dates-container">
+                    <div class="date-box">
+                        <span class="date-label">Start</span>
+                        <input type="date" class="date-input" value="${window.escapeHTML(item.layDownDate || '')}" onchange="window.update(${globalIdx}, 'layDownDate', this.value)" title="تاريخ البدء">
+                    </div>
+                    <div class="date-box">
+                        <span class="date-label">End</span>
+                        <input type="date" class="date-input" value="${window.escapeHTML(item.completedDate || '')}" onchange="window.update(${globalIdx}, 'completedDate', this.value)" title="تاريخ الانتهاء">
+                    </div>
+                </div>
+            `;
+        }
+
+        tr.innerHTML = `
+            <td class="row-num">${displayIdx+1}</td>
+            <td><strong>${window.escapeHTML(item.sb)}</strong></td>
+            <td><input type="text" class="wo-input" value="${window.escapeHTML(item.wo||'')}" placeholder="W.O"
+                 onchange="window.update(${globalIdx},'wo',this.value)"></td>
+            <td>${window.getActionBadge(item.action)}</td>
+            <td><input type="text" class="remark-input" value="${window.escapeHTML(item.remark||'')}" placeholder="Notes"
+                 onchange="window.updateRemark(${globalIdx},this.value)"></td>
+            <td>
+                <div class="cable-id">${window.escapeHTML(item.id)}</div>
+                <div class="part-number">P/N: ${window.escapeHTML(item.pn)}</div>
+                ${pdfBadge}
+            </td>
+            <td><span class="zone-badge">${window.escapeHTML(item.zone)}</span></td>
+            <td><input type="text" class="name-input" value="${window.escapeHTML(item.tech||'')}" placeholder="Tech"
+                 onchange="window.update(${globalIdx},'tech',this.value)"></td>
+            <td><input type="text" class="name-input" value="${window.escapeHTML(item.inspector||'')}" placeholder="QC"
+                 onchange="window.update(${globalIdx},'inspector',this.value)"></td>
+            <td>
+                <select class="status-drop" onchange="window.upStat(${globalIdx},this.value)">
+                    ${statusOpts}
+                </select>
+                ${datesHtml}
+            </td>
+            <td style="text-align:center;">
+                <button class="btn-delete-row" onclick="window.deleteCable(${globalIdx})">✖</button>
+            </td>`;
+        fragment.appendChild(tr);
+    });
+
+    tbody.appendChild(fragment);
+    _updateStats(data.length, done, wip);
+};
+
+function _updateStats(total, done, wip) {
+    document.getElementById('total-count').innerText    = total;
+    document.getElementById('completion-pct').innerText = done; 
+    document.getElementById('wip-count').innerText      = wip;
+}
+
+// ── UPDATE HELPERS ──
+window.update = function(globalIdx, f, v) {
+    if (globalIdx < 0 || globalIdx >= window.cableData.length) return;
+    window.cableData[globalIdx][f] = v;
+    window.saveData(); 
+};
+
+window.upStat = function(globalIdx, v) {
+    if (globalIdx < 0 || globalIdx >= window.cableData.length) return;
+    const todayStr = new Date().toISOString().split('T')[0];
+
+    window.cableData[globalIdx].status = v;
+    window.cableData[globalIdx].qc     = (v === 'Completed');
+
+    if (v === 'Not Started') {
+        window.cableData[globalIdx].layDownDate = '';
+        window.cableData[globalIdx].completedDate = '';
+    } else if (v === 'Lay Down' || v === 'Removing') {
+        if (!window.cableData[globalIdx].layDownDate) {
+            window.cableData[globalIdx].layDownDate = todayStr;
+        }
+        window.cableData[globalIdx].completedDate = ''; 
+    } else if (v === 'Completed') {
+        if (!window.cableData[globalIdx].layDownDate) {
+            window.cableData[globalIdx].layDownDate = todayStr; 
+        }
+        if (!window.cableData[globalIdx].completedDate) {
+            window.cableData[globalIdx].completedDate = todayStr;
+        }
+    }
+
+    window.saveData(); window.filterTable();
+};
+
+window.filterTable = function() {
+    const s  = document.getElementById('search').value.toLowerCase();
+    const pr = document.getElementById('filter-progress').value;
+    const sb = document.getElementById('filter-sb').value;
+    const ac = document.getElementById('filter-action').value;
+    const zn = document.getElementById('filter-zone').value;
+
+    window.filteredData = window.cableData.filter(i => {
+        const matchSearch =
+            i.id.toLowerCase().includes(s) ||
+            i.pn.toLowerCase().includes(s) ||
+            (i.tech      || '').toLowerCase().includes(s) ||
+            (i.inspector || '').toLowerCase().includes(s) ||
+            (i.wo        || '').toLowerCase().includes(s) ||
+            (i.remark    || '').toLowerCase().includes(s) ||
+            (i.layDownDate || '').toLowerCase().includes(s) ||
+            (i.completedDate || '').toLowerCase().includes(s);
+
+        const matchProgress = !pr ||
+            (pr==='Completed'  && i.qc) ||
+            (pr==='Lay Down'   && !i.qc && (i.status==='Lay Down' || i.status==='Removing')) ||
+            (pr==='Not Started'&& !i.qc && i.status==='Not Started');
+
+        return matchSearch && (!sb||i.sb===sb) && (!ac||i.action===ac) && (!zn||i.zone===zn) && matchProgress;
+    });
+
+    window.filteredData.sort((a,b) => {
+        const s = (a.sb||'').localeCompare(b.sb||'', undefined, {numeric:true});
+        return s!==0 ? s : (a.id||'').localeCompare(b.id||'', undefined, {numeric:true, sensitivity:'base'});
+    });
+
+    window.renderTable(window.filteredData);
+};
+
+// ── PRINT REPORTS ──
+window.printReport = function(type) {
+    if (!window.currentAC) { showToast('⚠️ Please Load A/C first.'); return; }
+
+    const CONFIG = {
+        done:       { filter: c => c.qc,                               title: 'COMPLETED CABLES REPORT',       color: '#10b981' },
+        wip:        { filter: c => !c.qc && (c.status==='Lay Down' || c.status==='Removing'), 
+                      title: 'WIP CABLES REPORT (Lay Down)', color: '#ca8a04' },
+        notstarted: { filter: c => !c.qc && c.status==='Not Started', title: 'NOT STARTED CABLES REPORT',   color: '#64748b' }
+    };
+    const cfg = CONFIG[type];
+    if (!cfg) { showToast('⚠️ Unknown report type: ' + type); return; }  
+
+    const printData = window.cableData.filter(cfg.filter).sort((a,b) => {
+        const s = (a.sb||'').localeCompare(b.sb||'', undefined, {numeric:true});
+        return s!==0 ? s : (a.id||'').localeCompare(b.id||'', undefined, {numeric:true, sensitivity:'base'});
+    });
+
+    const rows = printData.map((item, i) => `<tr>
+        <td><strong>${i+1}</strong></td>
+        <td>${window.escapeHTML(item.sb)}</td>
+        <td>${window.escapeHTML(item.wo||'---')}</td>
+        <td>${window.escapeHTML(item.action)}</td>
+        <td><strong>${window.escapeHTML(item.id)}</strong></td>
+        <td style="font-family:monospace;">${window.escapeHTML(item.pn)}</td>
+        <td>${window.escapeHTML(item.tech||'---')}</td>
+        <td>${window.escapeHTML(item.inspector||'---')}</td>
+        <td>${window.escapeHTML(item.status)}</td>
+        <td>${window.escapeHTML(item.remark||'---')}</td>
+        <td>${window.escapeHTML(item.layDownDate||'---')}</td>
+        <td>${window.escapeHTML(item.completedDate||'---')}</td>
+    </tr>`).join('');
+
+    const html = `<!DOCTYPE html><html><head>
+    <title>A/C ${window.escapeHTML(window.currentAC)} — ${cfg.title}</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h2 { color:${cfg.color}; border-bottom:2px solid ${cfg.color}; padding-bottom:10px; }
+        table { width:100%; border-collapse:collapse; margin-top:20px; font-size:11px; }
+        th, td { border:1px solid #ccc; padding:6px 8px; text-align:center; }
+        th { background:#f1f5f9; }
+        .info { margin-bottom:20px; font-size:13px; color:#555; }
+        @media print { body { padding:0; } }
+    </style></head><body>
+    <h2>A/C ${window.escapeHTML(window.currentAC)} — ${cfg.title}</h2>
+    <div class="info">Total: <strong>${printData.length}</strong> &nbsp;|&nbsp; Report Generated: ${new Date().toLocaleDateString()}</div>
+    <table>
+        <thead><tr><th>#</th><th>SB</th><th>W.O</th><th>Action</th><th>Cable ID</th><th>P/N</th><th>Tech</th><th>QC</th><th>Status</th><th>Remarks</th><th>Start Date</th><th>End Date</th></tr></thead>
+        <tbody>${rows}</tbody>
+    </table>
+    <div style="margin-top:40px; text-align:center; font-size:12px; color:#888;">— End of Report —</div>
+    </body></html>`;
+
+    const w = window.open('', '_blank');
+    w.document.write(html); w.document.close();
+    setTimeout(() => w.print(), 500);
+};
+
+// Run app init explicitly after loading script
+window.initApp();
+
+</script>
+</body>
+</html>
